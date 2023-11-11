@@ -9,6 +9,9 @@
     "48": "images/icon-48.png",
     "128": "images/icon-128.png"
   },
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_icon": {
       "16": "images/icon-16.png",
@@ -17,20 +20,8 @@
       "128": "images/icon-128.png"
     }
   },
-  "permissions": [
-    "tabs",
-    "scripting",
-    "unlimitedStorage",
-    "search"
-  ],
-  "host_permissions":[
-    "https://*/*",
-    "http://*/*"
-  ],
-  "web_accessible_resources": [
-    {
-    "resources": ["sql-wasm.wasm", "sql-wasm.min.js"],
-    "matches": ["<all_urls>"]
-    }
+  "permissions": ["activeTab", "tabs", "scripting", "unlimitedStorage", "search"],
+  "host_permissions": [
+    "*://*/*"
   ]
 }
