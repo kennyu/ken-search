@@ -14,7 +14,8 @@ async function main() {
       reader.onerror = reject;
       reader.readAsArrayBuffer(blob);
     });
-    return await promise;
+    const result = await promise;
+    return new Uint8Array(result);
   }
 
   const arrayToBase64 = async (arrayBuffer) => {
@@ -33,17 +34,13 @@ async function main() {
     locateFile: file => file
   });
 
-  let loadStart = now();
-  let blobKV = await chrome.storage.local.get("db");
-  let getFinish = now();
-  let blob = blobKV.db;
+  const blobKV = await chrome.storage.local.get("db");
+  const blob = blobKV.db;
   let blobArray;
   if (blob) {
-    blobArray = base64ToArrayBuffer(blob);
+    blobArray = await base64ToArrayBuffer(blob);
   }
-  let deserializeFinish = now();
   let db = new SQL.Database(blobArray);
-  let dbInitFinish = now();
   
   db.run(`
     drop table if exists pages
@@ -65,11 +62,10 @@ async function main() {
     });
   };
 
-  chrome.action.onClicked.addListener(async (tab) => {
-    await log(tab, `DB load: ${loadStart} ${getFinish} ${deserializeFinish} ${dbInitFinish}`);
-    let results = db.exec("SELECT * FROM search_pages where content match 'gpt'");
-    await log(tab, results[0]);
-  });
+  // chrome.action.onClicked.addListener(async (tab) => {
+  //   let results = db.exec("SELECT * FROM search_pages where content match 'gpt'");
+  //   await log(tab, results[0]);
+  // });
 
   chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     if ((changeInfo.status === 'complete') && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {

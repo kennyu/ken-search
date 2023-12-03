@@ -19,7 +19,8 @@
       "32": "images/icon-32.png",
       "48": "images/icon-48.png",
       "128": "images/icon-128.png"
-    }
+    },
+    "default_popup": "popup.html"
   },
   "permissions": [
     "scripting", "storage", "storage", "unlimitedStorage", "tabs"
@@ -29,5 +30,9 @@
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'"
-  }
+  },
+  "web_accessible_resources": [{
+    "matches": ["<all_urls>"],
+    "resources": ["sql-wasm-debug.js"]
+  }]
 }
