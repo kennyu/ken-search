@@ -1,41 +1,74 @@
 import { initSqlJs } from './sql-wasm-debug.js';
 
 async function main() {
+  const now = () => {
+    return Date.now() / 1000;
+  };
+
+  const base64ToArrayBuffer = async (base64) => {
+    const response = await fetch("data:application/octet-stream;base64," + base64);
+    const blob = await response.blob();
+    const promise = new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(blob);
+    });
+    return await promise;
+  }
+
+  const arrayToBase64 = async (arrayBuffer) => {
+    const promise = new Promise((resolve, reject) => {
+      const blob = new Blob([arrayBuffer], {type: 'application/octet-stream'});
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+    const result = await promise;
+    return result.slice(result.indexOf(",") + 1);
+  }
 
   const SQL = await initSqlJs({
     locateFile: file => file
   });
 
+  let loadStart = now();
   let blobKV = await chrome.storage.local.get("db");
+  let getFinish = now();
   let blob = blobKV.db;
   let blobArray;
   if (blob) {
-    const blobBytes = self.atob(blob);
-    blobArray = new Uint8Array(blobBytes.length);
-    for (let i = 0; i < blobBytes.length; i++) {
-      blobArray[i] = blobBytes.charCodeAt(i);
-    }
+    blobArray = base64ToArrayBuffer(blob);
   }
+  let deserializeFinish = now();
   let db = new SQL.Database(blobArray);
+  let dbInitFinish = now();
+  
+  db.run(`
+    drop table if exists pages
+  `);
 
   db.run(`
-    create table if not exists pages (
-      url text not null,
-      title text not null,
-      content string not null,
-      timestamp integer not null
+    create virtual table if not exists search_pages using fts5(
+      url, title, content, timestamp
     )
   `);
 
+  const log = async (tab, message) => {
+    await chrome.scripting.executeScript({
+      func: (message) => {
+        console.log(message);
+      },
+      args: [message],
+      target: {tabId: tab.id}
+    });
+  };
+
   chrome.action.onClicked.addListener(async (tab) => {
-      let results = db.exec("SELECT * FROM pages");
-      await chrome.scripting.executeScript({
-        func: (results) => {
-          console.log(results[0]);
-        },
-        args: [results],
-        target: {tabId: tab.id}
-      });
+    await log(tab, `DB load: ${loadStart} ${getFinish} ${deserializeFinish} ${dbInitFinish}`);
+    let results = db.exec("SELECT * FROM search_pages where content match 'gpt'");
+    await log(tab, results[0]);
   });
 
   chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
@@ -48,19 +81,13 @@ async function main() {
         target: { tabId: tabId }
       });
 
-      let timestamp = Math.floor(Date.now() / 1000);
+      let timestamp = Math.floor(now());
 
       let pageText = result[0].result;
-      await chrome.scripting.executeScript({
-        func: (pageText) => {
-          console.log(pageText);
-        },
-        args: [pageText],
-        target: { tabId: tabId }
-      });
+      await log(tab, pageText);
 
       db.run(`
-        insert into pages (url, title, content, timestamp)
+        insert into search_pages (url, title, content, timestamp)
         values (:url, :title, :content, :timestamp)
       `, {
         ":url": tab.url,
@@ -68,24 +95,9 @@ async function main() {
         ":content": pageText,
         ":timestamp": timestamp
       });
-
       const outBlobArray = db.export();
-      let outBlobBytes = "";
-      for (let i = 0; i < outBlobArray.length; i++) {
-        outBlobBytes += String.fromCharCode(outBlobArray[i]);
-      }
-      const outBlob = self.btoa(outBlobBytes);
+      const outBlob = await arrayToBase64(outBlobArray);
       await chrome.storage.local.set({"db": outBlob});
-
-      const countResult = db.exec("select count(*) from pages");
-      const count = countResult[0].values[0][0];
-      await chrome.scripting.executeScript({
-        func: (count) => {
-          console.log(count);
-        },
-        args: [count],
-        target: { tabId: tabId }
-      });
     }
   });
 }
