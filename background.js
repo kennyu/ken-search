@@ -21,14 +21,14 @@ async function main() {
     let db = await readDB(initSqlJs);
 
     db.run(`
-    drop table if exists pages
-  `);
+        drop table if exists pages
+    `);
 
     db.run(`
-    create virtual table if not exists search_pages using fts5(
-      url, title, content, timestamp
-    )
-  `);
+        create virtual table if not exists search_pages using fts5(
+            url, title, content, timestamp
+        )
+    `);
 
     const log = async (tab, message) => {
         await chrome.scripting.executeScript({
@@ -47,9 +47,16 @@ async function main() {
 
     chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         if ((changeInfo.status === 'complete') && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
+            await chrome.scripting.executeScript({
+                target: { tabId: tabId },
+                injectImmediately: true,
+                files: ['Readability.js']
+            });
+
             let result = await chrome.scripting.executeScript({
                 func: () => {
-                    let body = document.documentElement.innerText;
+                    const documentClone = document.cloneNode(true);
+                    const body = new Readability(documentClone).parse().textContent;
                     return body;
                 },
                 target: { tabId: tabId }
@@ -61,9 +68,9 @@ async function main() {
             await log(tab, pageText);
 
             db.run(`
-        insert into search_pages (url, title, content, timestamp)
-        values (:url, :title, :content, :timestamp)
-      `, {
+                insert into search_pages (url, title, content, timestamp)
+                values (:url, :title, :content, :timestamp)
+            `, {
                 ":url": tab.url,
                 ":title": tab.title,
                 ":content": pageText,
