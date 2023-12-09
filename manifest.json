@@ -1,38 +1,48 @@
 {
-  "manifest_version": 3,
-  "name": "Ken Search",
-  "description": "Search Ken",
-  "version": "1.0",
-  "icons": {
-    "16": "images/icon-16.png",
-    "32": "images/icon-32.png",
-    "48": "images/icon-48.png",
-    "128": "images/icon-128.png"
-  },
-  "background": {
-    "service_worker": "background.js",
-    "type": "module"
-  },
-  "action": {
-    "default_icon": {
-      "16": "images/icon-16.png",
-      "32": "images/icon-32.png",
-      "48": "images/icon-48.png",
-      "128": "images/icon-128.png"
+    "manifest_version": 3,
+    "name": "Ken Search",
+    "description": "Search Ken",
+    "version": "1.0",
+    "icons": {
+        "16": "images/icon-16.png",
+        "32": "images/icon-32.png",
+        "48": "images/icon-48.png",
+        "128": "images/icon-128.png"
     },
-    "default_popup": "popup.html"
-  },
-  "permissions": [
-    "scripting", "storage", "storage", "unlimitedStorage", "tabs"
-  ],
-  "host_permissions": [
-    "*://*/*"
-  ],
-  "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'"
-  },
-  "web_accessible_resources": [{
-    "matches": ["<all_urls>"],
-    "resources": ["sql-wasm-debug.js"]
-  }]
+    "background": {
+        "service_worker": "background.js",
+        "type": "module"
+    },
+    "action": {
+        "default_icon": {
+            "16": "images/icon-16.png",
+            "32": "images/icon-32.png",
+            "48": "images/icon-48.png",
+            "128": "images/icon-128.png"
+        },
+        "default_popup": "popup.html"
+    },
+    "permissions": [
+        "scripting",
+        "storage",
+        "storage",
+        "unlimitedStorage",
+        "tabs"
+    ],
+    "host_permissions": [
+        "*://*/*"
+    ],
+    "content_security_policy": {
+        "extension_pages": "script-src 'self' 'wasm-unsafe-eval'"
+    },
+    "web_accessible_resources": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "resources": [
+                "sql-wasm-debug.js"
+            ]
+        }
+    ]
 }
