@@ -1,5 +1,6 @@
 import { initSqlJs } from './sql-wasm-debug.js';
 import { readDB } from './shared.js';
+import { XXH64 } from './xxhash.js';
 
 async function main() {
     const now = () => {
@@ -21,12 +22,12 @@ async function main() {
     let db = await readDB(initSqlJs);
 
     db.run(`
-        drop table if exists pages
+        drop table if exists search_pages
     `);
 
     db.run(`
         create virtual table if not exists search_pages using fts5(
-            url, title, content, timestamp
+            url, title, content, timestamp, content_hash
         )
     `);
 
@@ -67,15 +68,30 @@ async function main() {
             let pageText = result[0].result;
             await log(tab, pageText);
 
-            db.run(`
-                insert into search_pages (url, title, content, timestamp)
-                values (:url, :title, :content, :timestamp)
-            `, {
-                ":url": tab.url,
-                ":title": tab.title,
-                ":content": pageText,
-                ":timestamp": timestamp
-            });
+            let pageTextHash = XXH64(pageText, 0xABCD).toString(16);
+
+            let results = db.exec(`
+                SELECT * FROM search_pages WHERE content_hash = '${pageTextHash}'
+            `);
+
+            if (results[0]) {
+                await log(tab, "Hash found in the database");
+                await log(tab, pageTextHash);
+            } else {
+                await log(tab, "Hash not found in the database");
+                await log(tab, pageTextHash);
+                db.run(`
+                    insert into search_pages (url, title, content, timestamp, content_hash)
+                    values (:url, :title, :content, :timestamp, :content_hash)
+                `, {
+                    ":url": tab.url,
+                    ":title": tab.title,
+                    ":content": pageText,
+                    ":timestamp": timestamp,
+                    ":content_hash": pageTextHash
+                });
+            }
+
             const outBlobArray = db.export();
             const outBlob = await arrayToBase64(outBlobArray);
             await chrome.storage.local.set({ "db": outBlob });
