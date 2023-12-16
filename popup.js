@@ -14,7 +14,7 @@ async function main() {
 main();
 
 const search = () => {
-    const term = document.getElementById("search_term").value;
+    const term = document.getElementById("search_field").value;
     let results = db.exec(`
         SELECT url, title, timestamp, snippet(search_pages, 2, '<b>', '</b>', '', 64)
         FROM search_pages(:term)
@@ -49,7 +49,16 @@ const search = () => {
         resultsElement.innerText = "No results";
     }
 }
+
+const searchField = document.getElementById("search_field");
 const searchButton = document.getElementById("search_button");
+searchField.addEventListener("keyup", event => {
+    if (event.key !== "Enter") {
+        return;
+    }
+    searchButton.click();
+    event.preventDefault();
+});
 searchButton.addEventListener("click", () => search());
 
 console.log(searchButton);
