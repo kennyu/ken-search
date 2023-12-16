@@ -18,6 +18,7 @@ const search = () => {
     let results = db.exec(`
         SELECT url, title, timestamp, snippet(search_pages, 2, '<b>', '</b>', '', 64)
         FROM search_pages(:term)
+        LIMIT 10
     `, {":term": '"' + term + '"'});
     let resultsElement = document.getElementById("search_results");
     if (results[0]) {
@@ -26,7 +27,14 @@ const search = () => {
             element = document.createElement("div");
 
             urlElement = document.createElement("div");
-            urlElement.innerHTML = result[0];
+            urlLinkElement = document.createElement("a");
+            urlLinkElement.innerHTML = `<a href="${result[0]}">${result[0]}</a>`
+            urlLinkElement.addEventListener("click", () => {
+                chrome.tabs.create({
+                    url: result[0]
+                });
+            });
+            urlElement.appendChild(urlLinkElement);
             element.appendChild(urlElement);
             
             titleElement = document.createElement("div");
