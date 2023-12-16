@@ -15,7 +15,10 @@ main();
 
 const search = () => {
     const term = document.getElementById("search_term").value;
-    let results = db.exec("SELECT url, title, content, timestamp FROM search_pages(:term)", {":term": term});
+    let results = db.exec(`
+        SELECT url, title, timestamp, snippet(search_pages, 2, '<b>', '</b>', '', 64)
+        FROM search_pages(:term)
+    `, {":term": '"' + term + '"'});
     let resultsElement = document.getElementById("search_results");
     if (results[0]) {
         resultsElement.innerText = "";
@@ -32,9 +35,13 @@ const search = () => {
             
             timestampElement = document.createElement("div");
             let timestamp = new Date();
-            timestamp.setTime(result[3] * 1000);
+            timestamp.setTime(result[2] * 1000);
             timestampElement.innerHTML = timestamp.toUTCString();
             element.appendChild(timestampElement);
+            
+            snippetElement = document.createElement("div");
+            snippetElement.innerHTML = result[3];
+            element.appendChild(snippetElement);
 
             resultsElement.appendChild(element);
         }

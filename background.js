@@ -21,9 +21,9 @@ async function main() {
 
     let db = await readDB(initSqlJs);
 
-    db.run(`
-        drop table if exists search_pages
-    `);
+    // db.run(`
+    //     drop table if exists search_pages
+    // `);
 
     db.run(`
         create virtual table if not exists search_pages using fts5(
@@ -40,11 +40,6 @@ async function main() {
             target: { tabId: tab.id }
         });
     };
-
-    // chrome.action.onClicked.addListener(async (tab) => {
-    //   let results = db.exec("SELECT * FROM search_pages where content match 'gpt'");
-    //   await log(tab, results[0]);
-    // });
 
     chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         if ((changeInfo.status === 'complete') && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
